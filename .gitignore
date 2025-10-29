@@ -1,0 +1,134 @@
+# 虚拟环境目录
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 模型文件 (大型二进制文件)
+*.h5
+*.pth
+*.pt
+*.onnx
+*.pkl
+*.model
+*.weights
+*.bin
+best.pt
+yolov8*.pt
+
+# IDE 配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# 系统生成文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# 临时文件和缓存
+temp/
+tmp/
+cache/
+.cache/
+*.tmp
+*.temp
+*.log
+*.out
+
+# 上传和输出目录
+uploads/
+outputs/
+results/
+data/
+videos/
+images/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 视频文件 (测试用)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+
+# 文档生成
+docs/_build/
+site/
+
+# 特定项目排除
+.trae/
+node_modules/
+package-lock.json
+yarn.lock

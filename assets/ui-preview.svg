@@ -1,0 +1,68 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bg)"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="800" height="80" fill="rgba(255,255,255,0.1)"/>
+  <text x="40" y="50" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">
+    🏀 TikTok Basketball Player - AI分析系统
+  </text>
+  
+  <!-- Main Content Area -->
+  <rect x="40" y="120" width="720" height="400" rx="10" fill="rgba(255,255,255,0.9)"/>
+  
+  <!-- Upload Area -->
+  <rect x="60" y="140" width="320" height="200" rx="8" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" stroke-dasharray="5,5"/>
+  <text x="220" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#6c757d">
+    📹 拖拽视频文件到此处
+  </text>
+  <text x="220" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6c757d">
+    支持 MP4, AVI, MOV 格式
+  </text>
+  
+  <!-- Results Area -->
+  <rect x="400" y="140" width="340" height="200" rx="8" fill="#e8f5e9"/>
+  <text x="570" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2e7d32">
+    🎯 AI检测结果
+  </text>
+  
+  <!-- Stats -->
+  <circle cx="450" cy="220" r="25" fill="#4caf50"/>
+  <text x="450" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">85%</text>
+  <text x="450" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2e7d32">进球准确率</text>
+  
+  <circle cx="570" cy="220" r="25" fill="#ff9800"/>
+  <text x="570" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">12</text>
+  <text x="570" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#f57c00">检测到进球</text>
+  
+  <circle cx="690" cy="220" r="25" fill="#2196f3"/>
+  <text x="690" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">3.2s</text>
+  <text x="690" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#1976d2">平均处理时间</text>
+  
+  <!-- Progress Bar -->
+  <rect x="60" y="370" width="680" height="20" rx="10" fill="#e0e0e0"/>
+  <rect x="60" y="370" width="480" rx="10" height="20" fill="#4caf50"/>
+  <text x="400" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">处理进度: 70%</text>
+  
+  <!-- Action Buttons -->
+  <rect x="60" y="420" width="120" height="40" rx="20" fill="#2196f3"/>
+  <text x="120" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">开始分析</text>
+  
+  <rect x="200" y="420" width="120" height="40" rx="20" fill="#4caf50"/>
+  <text x="260" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">下载结果</text>
+  
+  <rect x="340" y="420" width="120" height="40" rx="20" fill="#ff9800"/>
+  <text x="400" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">查看统计</text>
+  
+  <!-- Footer -->
+  <text x="400" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.8)">
+    基于YOLOv8的智能篮球进球检测与集锦生成系统
+  </text>
+</svg>

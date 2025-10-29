@@ -1,0 +1,157 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flowBg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#667eea;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="url(#flowBg)"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">
+    🎬 视频处理工作流程
+  </text>
+  
+  <!-- Step 1: Upload -->
+  <rect x="50" y="80" width="120" height="80" rx="10" fill="rgba(255,255,255,0.9)"/>
+  <text x="110" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+    📤 上传视频
+  </text>
+  <text x="110" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    MP4/AVI/MOV
+  </text>
+  <text x="110" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    最大500MB
+  </text>
+  
+  <!-- Arrow 1 -->
+  <path d="M 170 120 L 210 120" stroke="white" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 2: AI Analysis -->
+  <rect x="230" y="80" width="120" height="80" rx="10" fill="rgba(255,255,255,0.9)"/>
+  <text x="290" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+    🤖 AI分析
+  </text>
+  <text x="290" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    YOLOv8检测
+  </text>
+  <text x="290" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    进球识别
+  </text>
+  
+  <!-- Arrow 2 -->
+  <path d="M 350 120 L 390 120" stroke="white" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 3: Highlight Generation -->
+  <rect x="410" y="80" width="120" height="80" rx="10" fill="rgba(255,255,255,0.9)"/>
+  <text x="470" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+    ✂️ 集锦生成
+  </text>
+  <text x="470" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    自动剪辑
+  </text>
+  <text x="470" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    精彩片段
+  </text>
+  
+  <!-- Arrow 3 -->
+  <path d="M 530 120 L 570 120" stroke="white" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 4: Download -->
+  <rect x="590" y="80" width="120" height="80" rx="10" fill="rgba(255,255,255,0.9)"/>
+  <text x="650" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+    📥 下载结果
+  </text>
+  <text x="650" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    高清视频
+  </text>
+  <text x="650" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    统计报告
+  </text>
+  
+  <!-- Processing Details -->
+  <rect x="50" y="200" width="700" height="250" rx="15" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Detail Section Title -->
+  <text x="400" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+    🔍 处理详情
+  </text>
+  
+  <!-- Video Frame Analysis -->
+  <rect x="80" y="250" width="150" height="100" rx="8" fill="rgba(255,255,255,0.9)"/>
+  <text x="155" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">
+    帧分析
+  </text>
+  <rect x="90" y="285" width="130" height="50" rx="4" fill="#f0f0f0"/>
+  <rect x="95" y="290" width="40" height="20" fill="#4caf50"/>
+  <rect x="140" y="290" width="40" height="20" fill="#ff9800"/>
+  <rect x="185" y="290" width="30" height="20" fill="#f44336"/>
+  <text x="155" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">
+    进球检测置信度
+  </text>
+  
+  <!-- Statistics -->
+  <rect x="250" y="250" width="150" height="100" rx="8" fill="rgba(255,255,255,0.9)"/>
+  <text x="325" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">
+    统计数据
+  </text>
+  <text x="325" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    总进球数: 15
+  </text>
+  <text x="325" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    准确率: 92.3%
+  </text>
+  <text x="325" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    处理时间: 2.5分钟
+  </text>
+  
+  <!-- Output Preview -->
+  <rect x="420" y="250" width="150" height="100" rx="8" fill="rgba(255,255,255,0.9)"/>
+  <text x="495" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">
+    输出预览
+  </text>
+  <rect x="430" y="285" width="130" height="50" rx="4" fill="#e3f2fd"/>
+  <text x="495" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#1976d2">
+    🎥 highlight_video.mp4
+  </text>
+  <text x="495" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#1976d2">
+    📊 analysis_report.json
+  </text>
+  
+  <!-- Performance Metrics -->
+  <rect x="590" y="250" width="150" height="100" rx="8" fill="rgba(255,255,255,0.9)"/>
+  <text x="665" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">
+    性能指标
+  </text>
+  <text x="665" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    GPU利用率: 85%
+  </text>
+  <text x="665" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    内存使用: 3.2GB
+  </text>
+  <text x="665" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">
+    FPS处理: 30帧/秒
+  </text>
+  
+  <!-- Progress Bar -->
+  <rect x="100" y="380" width="600" height="25" rx="12" fill="rgba(255,255,255,0.3)"/>
+  <rect x="100" y="380" width="480" height="25" rx="12" fill="#4caf50"/>
+  <text x="400" y="398" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+    处理进度: 80% 完成
+  </text>
+  
+  <!-- Time Estimate -->
+  <text x="400" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.8)">
+    预计剩余时间: 30秒
+  </text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
+    </marker>
+  </defs>
+</svg>
