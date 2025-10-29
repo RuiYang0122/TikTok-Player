@@ -54,17 +54,22 @@ source venv/bin/activate
 # 安装依赖
 pip install -r requirements.txt
 
-# 启动后端服务
-python app.py
+# 启动后端服务(测试阶段)
+python test_full_pipeline.py
 ```
 
-**API访问地址：** http://localhost:5000
+## 注意事项
+**目前仍处于测试阶段，测试视频存放于backend\test_files目录下。**  
+**如你想生成自己的集锦视频，可以将视频保存在该目录下。**
+**进入backend\test_full_pipeline.py文件，修改video_path变量为你保存的视频文件名。**
+**运行test_full_pipeline.py文件，即可生成集锦视频。**
+
 
 ## 📁 项目结构
 
 ```
 Tiktok_Player/
-├── backend/                 # Flask后端应用
+├── backend/                 # 后端代码
 │   ├── app.py              # 主应用文件
 │   ├── shot_detector_video.py  # 进球检测模块
 │   ├── video_processor.py   # 视频处理模块
