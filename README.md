@@ -12,6 +12,20 @@
 
 </div>
 
+## 🎬 演示视频
+
+### 运行演示
+<video src="./assets/run-demo.mp4" controls width="720">
+你的浏览器不支持 video 标签。可点击链接直接下载查看。
+</video>
+
+### 结果演示
+<video src="./assets/result-demo.mp4" controls width="720">
+你的浏览器不支持 video 标签。可点击链接直接下载查看。
+</video>
+
+> 注：以上演示视频体积较小，已放置于 `assets/` 目录，便于在README中快速预览。
+
 ## ✨ 核心功能
 
 - 🎯 **AI进球检测**：基于YOLOv8模型的篮球进球自动识别
@@ -110,6 +124,10 @@ GET /api/download/{filename}
 ## 📄 许可证
 
 MIT License
+
+
+## 🙏 致谢
+- 本项目受 [AI-Basketball-Shot-Detection-Tracker](https://github.com/avishah3/AI-Basketball-Shot-Detection-Tracker) 的启发，感谢作者提供的思路与开源贡献。
 
 
 
