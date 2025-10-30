@@ -118,6 +118,7 @@ dmypy.json
 
 # 视频文件 (测试用)
 *.mp4
+!assets/*.mp4
 *.avi
 *.mov
 *.mkv
