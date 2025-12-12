@@ -27,35 +27,48 @@
 #     print(f"📁 输出文件: {output['output_file']}")
 # else:
 #     print(f"\n❌ 失败: {output['error']}")
-
+import os
+# 解决 Windows 上 OpenMP 运行时冲突（libomp 与 libiomp5md）
+os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
 from shot_detector_video import BasketballShotDetector
 from video_processor import VideoProcessor
-import os
 
 # 确保输出目录存在
 os.makedirs('outputs', exist_ok=True)
 
-# 步骤1: 检测进球
-print("步骤1: 检测进球时刻...")
+# 步骤1: 检测进球（开启标注并输出标注视频）
+print("步骤1: 检测进球时刻并生成标注视频...")
 detector = BasketballShotDetector(model_path='D:/basketball-highlight-generator/backend/best.pt')
-result = detector.detect_shots_with_clips('D:/basketball-highlight-generator/backend/test_files/video_test_2.mp4')
+annotated_path = 'D:/basketball-highlight-generator/backend/outputs/video_test_2_annotated.mp4'
+result = detector.detect_shots_with_clips(
+    'D:/basketball-highlight-generator/backend/test_files/video_test_2.mp4',
+    before_seconds=3,
+    after_seconds=1,
+    annotate=True,
+    annotated_output_path=annotated_path,
+)
 
 print(f"\n检测结果:")
 print(f"  总投篮: {result['stats']['total_attempts']}")
 print(f"  进球数: {result['stats']['total_makes']}")
 print(f"  命中率: {result['stats']['accuracy']}%")
+if result.get('annotated_video'):
+    print(f"  标注视频: {result['annotated_video']}")
+elif os.path.exists(annotated_path):
+    print(f"  标注视频: {annotated_path}")
 
-# 步骤2: 生成集锦视频
-print("\n步骤2: 生成集锦视频...")
+# 步骤2: 生成集锦视频（从标注视频剪辑，确保红框与蓝点保留）
+print("\n步骤2: 生成集锦视频（使用标注源）...")
 processor = VideoProcessor()
 
 # 注意：output_path 必须是完整的文件路径（包含文件名），不能只是目录
+source_for_clips = result.get('annotated_video') or annotated_path
 output = processor.process_video_full_pipeline(
-    video_path='D:/basketball-highlight-generator/backend/test_files/video_test_2.mp4',
+    video_path=source_for_clips,
     timestamps=result['made_shots'],
-    output_path='D:/basketball-highlight-generator/backend/outputs/basketball_highlight.mp4',  # ← 修复：添加文件名
-    before=3,  # 进球前5秒
-    after=1    # 进球后1秒
+    output_path='D:/basketball-highlight-generator/backend/outputs/basketball_highlight.mp4',
+    before=3,
+    after=1
 )
 
 if output['success']:

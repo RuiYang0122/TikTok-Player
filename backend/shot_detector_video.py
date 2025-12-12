@@ -1,13 +1,17 @@
 # basketball_shot_detector.py - 批量进球检测模块
+import os
+# 解决 Windows 上 OpenMP 运行时冲突（libomp 与 libiomp5md）
+os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
 from ultralytics import YOLO
 import cv2
 import math
 import numpy as np
+import tempfile
 from utils import (
-    score, detect_down, detect_up, in_hoop_region, 
+    score, detect_down, detect_up, in_hoop_region,
     clean_hoop_pos, clean_ball_pos, get_device
 )
-from typing import List, Dict
+from typing import List, Dict, Tuple, Optional
 
 class BasketballShotDetector:
     """
@@ -29,7 +33,13 @@ class BasketballShotDetector:
         print(f"使用设备: {self.device}")
         print(f"模型加载完成: {model_path}")
     
-    def detect_shots(self, video_path: str, progress_callback=None) -> List[Dict]:
+    def detect_shots(
+        self,
+        video_path: str,
+        progress_callback=None,
+        annotate: bool = False,
+        annotated_output_path: Optional[str] = None,
+    ) -> List[Dict]:
         """
         检测视频中的所有进球
         
@@ -55,8 +65,33 @@ class BasketballShotDetector:
         # 获取视频信息
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        print(f"视频信息 - FPS: {fps}, 总帧数: {total_frames}")
+        print(f"视频信息 - FPS: {fps}, 尺寸: {width}x{height}, 总帧数: {total_frames}")
+
+        # 标注视频写出器
+        writer = None
+        if annotate:
+            try:
+                if not annotated_output_path:
+                    base = os.path.splitext(os.path.basename(video_path))[0]
+                    annotated_output_path = os.path.join(tempfile.gettempdir(), f"{base}_annotated.mp4")
+
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                writer = cv2.VideoWriter(annotated_output_path, fourcc, fps if fps > 0 else 30, (width, height))
+                if not writer or not writer.isOpened():
+                    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                    writer = cv2.VideoWriter(annotated_output_path, fourcc, fps if fps > 0 else 30, (width, height))
+
+                if writer and writer.isOpened():
+                    print(f"标注视频输出: {annotated_output_path}")
+                else:
+                    print("⚠️ 无法初始化视频写出器，跳过标注输出")
+                    writer = None
+            except Exception as e:
+                print(f"⚠️ 初始化标注视频写出器失败: {e}")
+                writer = None
         
         # 初始化追踪变量
         ball_pos = []
@@ -76,12 +111,15 @@ class BasketballShotDetector:
         
         while True:
             ret, frame = cap.read()
-            
+
             if not ret:
                 break
-            
+
             # 运行YOLO检测
             results = self.model(frame, stream=True, device=self.device, verbose=False)
+
+            # 当前帧的篮球边框集合（用于绘制红框）
+            ball_boxes_in_frame: List[Tuple[int, int, int, int, float]] = []
             
             for r in results:
                 boxes = r.boxes
@@ -105,6 +143,8 @@ class BasketballShotDetector:
                         (in_hoop_region(center, hoop_pos) and conf > 0.15)) and \
                         current_class == "Basketball":
                         ball_pos.append((center, frame_count, w, h, conf))
+                        # 记录当前帧的篮球边框
+                        ball_boxes_in_frame.append((x1, y1, x2, y2, conf))
                     
                     # 检测篮筐
                     if conf > 0.3 and current_class == "Basketball Hoop":
@@ -156,6 +196,22 @@ class BasketballShotDetector:
                         up = False
                         down = False
             
+            # 在当前帧上绘制标注（蓝色轨迹点 + 红色篮球框）
+            if annotate and writer:
+                try:
+                    # 蓝色点标记篮球轨迹
+                    for bp in ball_pos:
+                        cv2.circle(frame, bp[0], 3, (255, 0, 0), -1)  # 蓝色点 (BGR)
+
+                    # 红色框框选篮球（仅当前帧检测到的篮球）
+                    for (bx1, by1, bx2, by2, bconf) in ball_boxes_in_frame:
+                        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 0, 255), 2)
+
+                    writer.write(frame)
+                except Exception as e:
+                    # 如果某帧写入失败，不影响检测流程
+                    pass
+
             frame_count += 1
             
             # 进度回调
@@ -163,6 +219,8 @@ class BasketballShotDetector:
                 progress_callback(frame_count, total_frames)
         
         cap.release()
+        if writer:
+            writer.release()
         
         # 打印统计信息
         accuracy = (makes / attempts * 100) if attempts > 0 else 0
@@ -174,7 +232,15 @@ class BasketballShotDetector:
         
         return shot_results
     
-    def detect_shots_with_clips(self, video_path: str, before_seconds=8, after_seconds=2, progress_callback=None) -> Dict:
+    def detect_shots_with_clips(
+        self,
+        video_path: str,
+        before_seconds=8,
+        after_seconds=2,
+        progress_callback=None,
+        annotate: bool = False,
+        annotated_output_path: Optional[str] = None,
+    ) -> Dict:
         """
         检测进球并返回每个进球的剪辑时间段
         
@@ -192,8 +258,17 @@ class BasketballShotDetector:
                 'stats': 统计信息
             }
         """
-        # 检测所有投篮
-        all_shots = self.detect_shots(video_path, progress_callback)
+        # 检测所有投篮（可选标注并生成标注视频）
+        if annotate and not annotated_output_path:
+            base = os.path.splitext(os.path.basename(video_path))[0]
+            annotated_output_path = os.path.join(tempfile.gettempdir(), f"{base}_annotated.mp4")
+
+        all_shots = self.detect_shots(
+            video_path,
+            progress_callback=progress_callback,
+            annotate=annotate,
+            annotated_output_path=annotated_output_path,
+        )
         
         # 筛选出进球
         made_shots = [shot for shot in all_shots if shot['made']]
@@ -227,7 +302,8 @@ class BasketballShotDetector:
                 'total_attempts': total_attempts,
                 'total_makes': total_makes,
                 'accuracy': round(accuracy, 2)
-            }
+            },
+            'annotated_video': annotated_output_path if annotate else None,
         }
 
 

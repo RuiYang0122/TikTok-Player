@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
+# 解决 Windows 上 OpenMP 运行时冲突（libomp 与 libiomp5md）
+os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
 import uuid
 import threading
 import time
@@ -276,10 +278,12 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
         # 检测进球
         logger.info(f"开始检测进球，文件: {input_path}")
         result = detector.detect_shots_with_clips(
-            input_path, 
-            before_seconds=before_seconds, 
+            input_path,
+            before_seconds=before_seconds,
             after_seconds=after_seconds,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            annotate=True,
+            annotated_output_path=os.path.join(app.config['TEMP_FOLDER'], f"{task_id}_annotated.mp4")
         )
         
         logger.info(f"检测完成，结果: 总投篮 {result['stats']['total_attempts']}, 进球 {result['stats']['total_makes']}, 命中率 {result['stats']['accuracy']:.1f}%")
@@ -301,8 +305,10 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
         if result['made_shots']:
             # 有进球，生成集锦
             logger.info(f"生成集锦视频，进球数量: {len(result['made_shots'])}")
+            # 若存在标注视频，优先从标注视频中剪辑，确保集锦包含红框与蓝色轨迹
+            source_video_for_clips = result.get('annotated_video') or input_path
             video_result = processor.process_video_full_pipeline(
-                video_path=input_path,
+                video_path=source_video_for_clips,
                 timestamps=result['made_shots'],
                 output_path=output_path,
                 before=before_seconds,
@@ -329,6 +335,7 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
                     'madeShots': result['stats']['total_makes'],
                     'accuracy': result['stats']['accuracy'],
                     'highlightVideo': output_filename,
+                    'annotatedVideo': os.path.basename(source_video_for_clips) if result.get('annotated_video') else None,
                     'timestamps': result['made_shots'],
                     'fileSize': file_size
                 }
@@ -355,6 +362,14 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
             logger.info(f"清理上传文件: {input_path}")
         except Exception as e:
             logger.warning(f"清理上传文件失败: {e}")
+        # 清理临时标注视频
+        try:
+            annotated_tmp = os.path.join(app.config['TEMP_FOLDER'], f"{task_id}_annotated.mp4")
+            if os.path.exists(annotated_tmp):
+                os.remove(annotated_tmp)
+                logger.info(f"清理临时标注视频: {annotated_tmp}")
+        except Exception as e:
+            logger.warning(f"清理临时标注视频失败: {e}")
             
     except Exception as e:
         # 处理错误

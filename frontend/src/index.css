@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  color-scheme: light;
+  color: #1f2937;
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Ant Design customizations */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #FF6B35 0%, #ff8c42 100%);
+  border-color: #FF6B35;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #ff8c42 0%, #FF6B35 100%);
+  border-color: #ff8c42;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.ant-progress-circle .ant-progress-text {
+  font-weight: 600;
+}
+
+.ant-upload-drag:hover {
+  border-color: #FF6B35;
+}
+
+.ant-upload-drag.ant-upload-drag-hover {
+  border-color: #FF6B35;
+  background-color: rgba(255, 107, 53, 0.02);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .ant-card {
+    margin: 0 -8px;
+    border-radius: 8px;
+  }
+  
+  .ant-card-body {
+    padding: 16px;
+  }
+  
+  .ant-table-wrapper {
+    font-size: 14px;
+  }
+  
+  .ant-btn {
+    height: 32px;
+    padding: 4px 12px;
+    font-size: 14px;
+  }
+  
+  .ant-input {
+    height: 32px;
+  }
+  
+  .ant-select {
+    font-size: 14px;
+  }
+  
+  .ant-select-selector {
+    height: 32px !important;
+  }
+  
+  .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .ant-modal {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .ant-btn {
+    min-height: 44px;
+  }
+  
+  .ant-input {
+    min-height: 44px;
+  }
+  
+  .ant-select-selector {
+    min-height: 44px !important;
+  }
+}
