@@ -6,7 +6,7 @@
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-AI%20Detection-green?style=for-the-badge)
 ![Flask](https://img.shields.io/badge/Flask-Backend-red?style=for-the-badge&logo=flask)
 
-**🎯 基于AI的篮球视频智能分析后端系统**
+**🎯 基于AI的篮球视频自动剪辑系统**
 
 使用YOLOv8深度学习模型实现篮球进球自动检测和视频集锦生成的后端API服务。
 
