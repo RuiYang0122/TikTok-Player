@@ -13,13 +13,6 @@
 </div>
 
 ## 🎬 演示视频
-
-### 运行演示
-<video src="./assets/run-demo.mp4" controls width="720">
-你的浏览器不支持 video 标签。可点击链接直接下载查看。
-</video>
-
-### 结果演示
 <video src="./assets/result-demo.mp4" controls width="720">
 你的浏览器不支持 video 标签。可点击链接直接下载查看。
 </video>
