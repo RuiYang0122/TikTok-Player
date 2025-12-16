@@ -5,7 +5,7 @@ import React from 'react';
 import { Card, Row, Col, Statistic, Progress, Tag, Timeline, Divider } from 'antd';
 import {
   TrophyOutlined,
-  TargetOutlined,
+  AimOutlined,
   ClockCircleOutlined,
   PlayCircleOutlined,
   CheckCircleOutlined,
@@ -13,7 +13,7 @@ import {
   ThunderboltOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { DetectionStats, ProcessingResult } from '@/types';
+import type { DetectionStats, ProcessingResult } from '@/types';
 import { formatDuration, formatFileSize } from '@/utils';
 
 interface ResultStatsProps {
@@ -26,6 +26,11 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
   className = '',
 }) => {
   const { stats, highlights, processing_time, output_file } = result;
+  const backend: any = result || {};
+  const totalShots = (stats && stats.total_shots) ?? backend.totalShots ?? 0;
+  const madeShots = (stats && stats.successful_shots) ?? backend.madeShots ?? 0;
+  const accuracy = (stats && stats.accuracy_rate) ?? backend.accuracy ?? 0;
+  const highlightDuration = (stats && stats.highlight_duration) ?? 0;
 
   // 计算命中率颜色
   const getAccuracyColor = (rate: number) => {
@@ -83,15 +88,15 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
               <Col xs={12} sm={6}>
                 <Statistic
                   title="总投篮次数"
-                  value={stats.total_shots}
-                  prefix={<TargetOutlined />}
+                  value={totalShots}
+                  prefix={<AimOutlined />}
                   valueStyle={{ color: '#1890ff' }}
                 />
               </Col>
               <Col xs={12} sm={6}>
                 <Statistic
                   title="成功投篮"
-                  value={stats.successful_shots}
+                  value={madeShots}
                   prefix={<CheckCircleOutlined />}
                   valueStyle={{ color: '#52c41a' }}
                 />
@@ -99,17 +104,17 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
               <Col xs={12} sm={6}>
                 <Statistic
                   title="命中率"
-                  value={stats.accuracy_rate}
+                  value={accuracy}
                   precision={1}
                   suffix="%"
                   prefix={<TrophyOutlined />}
-                  valueStyle={{ color: getAccuracyColor(stats.accuracy_rate) }}
+                  valueStyle={{ color: getAccuracyColor(accuracy) }}
                 />
               </Col>
               <Col xs={12} sm={6}>
                 <Statistic
                   title="高光时长"
-                  value={stats.highlight_duration}
+                  value={highlightDuration}
                   precision={1}
                   suffix="秒"
                   prefix={<PlayCircleOutlined />}
@@ -126,11 +131,11 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">投篮命中率</span>
-                    <span className="font-semibold">{stats.accuracy_rate.toFixed(1)}%</span>
+                    <span className="font-semibold">{accuracy.toFixed(1)}%</span>
                   </div>
                   <Progress
-                    percent={stats.accuracy_rate}
-                    strokeColor={getAccuracyColor(stats.accuracy_rate)}
+                    percent={accuracy}
+                    strokeColor={getAccuracyColor(accuracy)}
                     showInfo={false}
                   />
                 </div>
@@ -140,66 +145,19 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">高光占比</span>
                     <span className="font-semibold">
-                      {((stats.highlight_duration / (output_file?.duration || 1)) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress
-                    percent={(stats.highlight_duration / (output_file?.duration || 1)) * 100}
-                    strokeColor="#722ed1"
-                    showInfo={false}
-                  />
+                      {((highlightDuration / (output_file?.duration || 1)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <Progress
+                  percent={(highlightDuration / (output_file?.duration || 1)) * 100}
+                  strokeColor="#722ed1"
+                  showInfo={false}
+                />
                 </div>
               </Col>
             </Row>
 
-            {/* 动作类型统计 */}
-            {(stats.shots_made > 0 || stats.dunks_made > 0 || stats.assists_made > 0 || stats.steals_made > 0) && (
-              <>
-                <Divider />
-                <Row gutter={16}>
-                  {stats.shots_made > 0 && (
-                    <Col xs={12} sm={6}>
-                      <Statistic
-                        title="投篮得分"
-                        value={stats.shots_made}
-                        prefix={<TargetOutlined />}
-                        valueStyle={{ color: '#fa8c16' }}
-                      />
-                    </Col>
-                  )}
-                  {stats.dunks_made > 0 && (
-                    <Col xs={12} sm={6}>
-                      <Statistic
-                        title="扣篮次数"
-                        value={stats.dunks_made}
-                        prefix={<FireOutlined />}
-                        valueStyle={{ color: '#f5222d' }}
-                      />
-                    </Col>
-                  )}
-                  {stats.assists_made > 0 && (
-                    <Col xs={12} sm={6}>
-                      <Statistic
-                        title="助攻次数"
-                        value={stats.assists_made}
-                        prefix={<ThunderboltOutlined />}
-                        valueStyle={{ color: '#1890ff' }}
-                      />
-                    </Col>
-                  )}
-                  {stats.steals_made > 0 && (
-                    <Col xs={12} sm={6}>
-                      <Statistic
-                        title="抢断次数"
-                        value={stats.steals_made}
-                        prefix={<EyeOutlined />}
-                        valueStyle={{ color: '#52c41a' }}
-                      />
-                    </Col>
-                  )}
-                </Row>
-              </>
-            )}
+            
           </Card>
         </Col>
 
@@ -251,13 +209,21 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
         </Col>
 
         {/* 高光时间线 */}
-        {highlights && highlights.length > 0 && (
+        {(result as any).timestamps && (result as any).timestamps.length > 0 && (
           <Col xs={24}>
-            <Card title={`高光片段 (${highlights.length}个)`}>
-              <Timeline items={getHighlightTimeline()} />
-              {highlights.length > 5 && (
+            <Card title={`进球时刻 (${(result as any).timestamps.length}个)`}>
+              <Timeline items={(result as any).timestamps.slice(0,5).map((t:any) => ({ color: 'orange', children: (
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Tag color="orange">进球</Tag>
+                    <span className="font-medium">{t.timestamp.toFixed(2)}s</span>
+                  </div>
+                  <div className="text-sm text-gray-600">帧: {t.frame}</div>
+                </div>
+              )}))} />
+              {(result as any).timestamps.length > 5 && (
                 <div className="text-center text-gray-500 mt-4">
-                  还有 {highlights.length - 5} 个高光片段...
+                  还有 {(result as any).timestamps.length - 5} 个时刻...
                 </div>
               )}
             </Card>
@@ -271,7 +237,7 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
               <Col xs={24} sm={8}>
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {(stats.total_shots / (processing_time / 60)).toFixed(1)}
+                    {(totalShots / Math.max(processing_time / 60 || 1, 1)).toFixed(1)}
                   </div>
                   <div className="text-sm text-gray-600">检测速度 (次/分钟)</div>
                 </div>
@@ -279,7 +245,7 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
               <Col xs={24} sm={8}>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 mb-1">
-                    {((stats.highlight_duration / (output_file?.duration || 1)) * 100).toFixed(1)}%
+                    {((highlightDuration / (output_file?.duration || 1)) * 100).toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600">精彩度</div>
                 </div>
@@ -287,7 +253,7 @@ export const ResultStats: React.FC<ResultStatsProps> = ({
               <Col xs={24} sm={8}>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600 mb-1">
-                    {highlights ? (highlights.reduce((sum, h) => sum + h.confidence, 0) / highlights.length * 100).toFixed(1) : 0}%
+                    {accuracy.toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600">平均置信度</div>
                 </div>

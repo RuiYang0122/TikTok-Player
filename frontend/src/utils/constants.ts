@@ -59,22 +59,13 @@ export const STAGE_DESCRIPTIONS = {
 
 // 默认处理配置
 export const DEFAULT_PROCESSING_CONFIG = {
-  sensitivity: 0.7,
-  minDuration: 1.0,
-  maxDuration: 120,
-  outputFormat: 'mp4' as const,
-  quality: 'high' as const,
-  includeSlowMotion: false,
-  autoEnhance: true,
-  detectShots: true,
-  detectDunks: true,
-  detectPasses: false,
-  detectDefense: false,
+  beforeSeconds: 3,
+  afterSeconds: 1,
 };
 
 // 文件限制
 export const FILE_LIMITS = {
-  MAX_SIZE: 500 * 1024 * 1024, // 500MB
+  MAX_SIZE: 2048 * 1024 * 1024, // 2GB
   MIN_SIZE: 1024 * 1024, // 1MB
   SUPPORTED_FORMATS: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'],
   SUPPORTED_MIME_TYPES: [

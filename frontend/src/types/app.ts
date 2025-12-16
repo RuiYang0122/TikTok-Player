@@ -18,17 +18,8 @@ export interface VideoFile {
 
 // 处理配置
 export interface ProcessingConfig {
-  sensitivity: number;
-  minDuration: number;
-  maxDuration: number;
-  outputFormat: 'mp4' | 'avi' | 'mov' | 'webm';
-  quality: 'low' | 'medium' | 'high' | 'ultra';
-  includeSlowMotion: boolean;
-  autoEnhance: boolean;
-  detectShots: boolean;
-  detectDunks: boolean;
-  detectPasses: boolean;
-  detectDefense: boolean;
+  beforeSeconds: number;
+  afterSeconds: number;
 }
 
 // 任务信息

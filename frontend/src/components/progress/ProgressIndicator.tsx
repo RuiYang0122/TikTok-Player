@@ -11,7 +11,7 @@ import {
   CheckCircleOutlined,
   LoadingOutlined 
 } from '@ant-design/icons';
-import { ProcessingStage, TaskStatus } from '@/types';
+import type { ProcessingStage, TaskStatus } from '@/types';
 
 const { Text, Title } = Typography;
 
@@ -54,9 +54,9 @@ const stageConfig = {
   },
   finalizing: {
     title: '最终处理',
-    icon: <LoadingOutlined />,
-    description: '正在进行最终处理和优化',
-    color: '#13c2c2',
+    icon: <CheckCircleOutlined />,
+    description: '最终处理完成',
+    color: '#52c41a',
   },
   completed: {
     title: '处理完成',

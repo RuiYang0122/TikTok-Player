@@ -6,7 +6,7 @@ import { Upload, Button, Progress, Alert, message } from 'antd';
 import { InboxOutlined, VideoCameraOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd';
 import { validateVideoFile, formatFileSize, formatDuration } from '@/utils';
-import { VideoFile } from '@/types';
+import type { VideoFile } from '@/types';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 const { Dragger } = Upload;
@@ -14,6 +14,7 @@ const { Dragger } = Upload;
 interface VideoUploadProps {
   onFileSelect: (file: VideoFile | null) => void;
   loading?: boolean;
+  progress?: number;
   disabled?: boolean;
   className?: string;
 }
@@ -21,6 +22,7 @@ interface VideoUploadProps {
 export const VideoUpload: React.FC<VideoUploadProps> = ({
   onFileSelect,
   loading = false,
+  progress = 0,
   disabled = false,
   className = '',
 }) => {
@@ -79,7 +81,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       setPreviewUrl(preview);
       onFileSelect(videoFile);
       
-      message.success('视频文件加载成功');
+      
       
     } catch (err) {
       handleError(err instanceof Error ? err : new Error('处理文件时发生未知错误'));
@@ -140,7 +142,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             <p className="ant-upload-hint text-gray-500 mb-4 text-sm sm:text-base">
               支持 MP4、AVI、MOV、WMV、FLV、WebM、MKV 格式
               <br />
-              文件大小限制：1MB - 500MB
+              文件大小限制：1MB - 2GB
             </p>
             <div className="flex flex-col sm:flex-row justify-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-400">
               <span>• 自动检测投篮动作</span>
@@ -219,12 +221,12 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">
-                  {isProcessing ? '处理文件中...' : '上传中...'}
+                  {isProcessing ? '读取文件中...' : (loading ? `上传中 ${progress}%` : '处理中...')}
                 </span>
                 <span className="text-sm text-gray-500">请稍候</span>
               </div>
               <Progress
-                percent={isProcessing ? 50 : 0}
+                percent={isProcessing ? undefined : progress}
                 status="active"
                 strokeColor={{
                   '0%': '#FF6B35',
@@ -238,41 +240,10 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       )}
 
       {/* 错误提示 */}
-      {hasError && error && (
-        <Alert
-          message="文件处理错误"
-          description={error.message}
-          type="error"
-          showIcon
-          closable
-          onClose={clearError}
-          className="mt-4"
-          action={
-            <Button size="small" onClick={clearError}>
-              重试
-            </Button>
-          }
-        />
-      )}
+      
 
       {/* 提示信息 */}
-      {!selectedFile && !hasError && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              <VideoCameraOutlined className="text-blue-500 text-lg mt-0.5" />
-            </div>
-            <div className="text-sm text-blue-700">
-              <p className="font-medium mb-1">上传提示：</p>
-              <ul className="space-y-1 text-blue-600">
-                <li>• 建议上传清晰度较高的篮球比赛或训练视频</li>
-                <li>• 确保视频中包含明显的投篮动作</li>
-                <li>• 视频时长建议在 1-30 分钟之间以获得最佳效果</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };

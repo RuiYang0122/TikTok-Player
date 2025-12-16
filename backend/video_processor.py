@@ -44,7 +44,7 @@ class VideoProcessor:
     
     def extract_clips(self, video_path: str, timestamps: List[Dict], 
                      before: float = 8, after: float = 2, 
-                     progress_callback=None) -> List[str]:
+                     progress_callback=None, log_callback=None) -> List[str]:
         """
         提取每个进球的视频片段
         
@@ -65,7 +65,8 @@ class VideoProcessor:
             print("⚠️  没有检测到进球，无法生成集锦")
             return []
         
-        print(f"开始提取 {len(made_shots)} 个进球片段...")
+        if log_callback:
+            log_callback(f"开始提取 {len(made_shots)} 个进球片段...")
         
         # 获取视频信息
         cap = cv2.VideoCapture(video_path)
@@ -86,26 +87,20 @@ class VideoProcessor:
             clip_filename = f"clip_{idx:03d}_{shot['frame']}.mp4"
             clip_path = os.path.join(self.temp_dir, clip_filename)
             
-            print(f"  提取片段 {idx + 1}/{len(made_shots)}: "
-                  f"{start_time:.2f}s - {end_time:.2f}s "
-                  f"(时长: {clip_duration:.2f}s)")
+            if log_callback:
+                log_callback(f"提取片段 {idx + 1}/{len(made_shots)}: {start_time:.2f}s - {end_time:.2f}s (时长: {clip_duration:.2f}s)")
             
             try:
-                # 使用FFmpeg精确剪辑
-                # -ss 放在 -i 前面可以加快处理速度（快速定位）
-                # -accurate_seek 确保精确定位
+                # 使用FFmpeg剪辑（不重新编码，提高兼容性）
+                input_path = os.path.abspath(video_path)
                 cmd = [
                     'ffmpeg',
-                    '-y',  # 覆盖已存在的文件
-                    '-ss', str(start_time),  # 开始时间
-                    '-i', video_path,  # 输入文件
-                    '-t', str(clip_duration),  # 持续时间
-                    '-c:v', 'libx264',  # 视频编码器
-                    '-preset', 'medium',  # 编码速度
-                    '-crf', '23',  # 质量（18-28，值越小质量越高）
-                    '-c:a', 'aac',  # 音频编码器
-                    '-b:a', '128k',  # 音频比特率
-                    '-avoid_negative_ts', 'make_zero',  # 避免时间戳问题
+                    '-y',
+                    '-ss', str(start_time),
+                    '-i', input_path,
+                    '-t', str(clip_duration),
+                    '-c', 'copy',
+                    '-avoid_negative_ts', 'make_zero',
                     clip_path
                 ]
                 
@@ -120,26 +115,33 @@ class VideoProcessor:
                 # 验证文件是否生成
                 if os.path.exists(clip_path) and os.path.getsize(clip_path) > 0:
                     clips.append(clip_path)
-                    print(f"    ✓ 片段 {idx + 1} 提取成功")
+                    if log_callback:
+                        log_callback(f"✓ 片段 {idx + 1} 提取成功")
                 else:
-                    print(f"    ✗ 片段 {idx + 1} 生成失败")
+                    if log_callback:
+                        log_callback(f"✗ 片段 {idx + 1} 生成失败")
                 
                 # 进度回调
                 if progress_callback:
                     progress_callback(idx + 1, len(made_shots))
                     
             except subprocess.TimeoutExpired:
-                print(f"    ✗ 片段 {idx + 1} 处理超时")
+                if log_callback:
+                    log_callback(f"✗ 片段 {idx + 1} 处理超时")
             except subprocess.CalledProcessError as e:
-                print(f"    ✗ 片段 {idx + 1} FFmpeg错误: {e.stderr.decode()[:200]}")
+                stderr_output = e.stderr.decode('utf-8', errors='ignore') if e.stderr else ''
+                if log_callback:
+                    log_callback(f"✗ 片段 {idx + 1} FFmpeg错误: {stderr_output[:2000]}")
             except Exception as e:
-                print(f"    ✗ 片段 {idx + 1} 未知错误: {str(e)}")
+                if log_callback:
+                    log_callback(f"✗ 片段 {idx + 1} 未知错误: {str(e)}")
         
-        print(f"✓ 成功提取 {len(clips)}/{len(made_shots)} 个片段")
+        if log_callback:
+            log_callback(f"✓ 成功提取 {len(clips)}/{len(made_shots)} 个片段")
         return clips
     
     def concatenate_clips(self, clips: List[str], output_path: str,
-                         add_transitions: bool = False) -> bool:
+                         add_transitions: bool = False, log_callback=None) -> bool:
         """
         拼接所有视频片段
         
@@ -155,7 +157,8 @@ class VideoProcessor:
             print("⚠️  没有可拼接的片段")
             return False
         
-        print(f"\n开始拼接 {len(clips)} 个片段...")
+        if log_callback:
+            log_callback(f"开始拼接 {len(clips)} 个片段...")
         
         # 创建文件列表
         list_file = os.path.join(self.temp_dir, 'concat_list.txt')
@@ -167,7 +170,7 @@ class VideoProcessor:
                     abs_path = os.path.abspath(clip).replace('\\', '/')
                     f.write(f"file '{abs_path}'\n")
             
-            print(f"  生成文件列表: {list_file}")
+            
             
             # 调试：打印文件列表内容
             with open(list_file, 'r', encoding='utf-8') as f:
@@ -194,23 +197,18 @@ class VideoProcessor:
                     print("✗ 复制失败")
                     return False
             
-            # 多个片段时使用concat
+            # 多个片段时使用concat并直接拷贝，不重新编码
             cmd = [
                 'ffmpeg',
                 '-y',
-                '-f', 'concat',  # 使用concat demuxer
-                '-safe', '0',  # 允许使用绝对路径
+                '-f', 'concat',
+                '-safe', '0',
                 '-i', list_file,
-                '-c:v', 'libx264',  # 重新编码视频
-                '-preset', 'medium',
-                '-crf', '23',
-                '-c:a', 'aac',
-                '-b:a', '128k',
+                '-c', 'copy',
                 output_path
             ]
             
-            print("  执行拼接...")
-            print(f"  FFmpeg命令: {' '.join(cmd)}")
+            
             
             result = subprocess.run(
                 cmd,
@@ -229,23 +227,26 @@ class VideoProcessor:
             # 验证输出文件
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                 file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
-                print(f"✓ 拼接完成: {output_path}")
-                print(f"  文件大小: {file_size_mb:.2f} MB")
+                if log_callback:
+                    log_callback("✓ 拼接完成")
                 return True
             else:
-                print("✗ 拼接失败：输出文件无效")
+                if log_callback:
+                    log_callback("✗ 拼接失败：输出文件无效")
                 return False
                 
         except subprocess.TimeoutExpired:
-            print("✗ 拼接超时")
+            if log_callback:
+                log_callback("✗ 拼接超时")
             return False
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.decode('utf-8', errors='ignore') if e.stderr else str(e)
-            print(f"✗ FFmpeg拼接错误（完整输出）:")
-            print(error_msg)
+            if log_callback:
+                log_callback("✗ FFmpeg拼接错误")
             return False
         except Exception as e:
-            print(f"✗ 拼接失败: {str(e)}")
+            if log_callback:
+                log_callback(f"✗ 拼接失败: {str(e)}")
             import traceback
             traceback.print_exc()
             return False
@@ -269,7 +270,7 @@ class VideoProcessor:
         print(f"✓ 清理了 {cleaned}/{len(clips)} 个临时文件")
     
     def process_video_full_pipeline(self, video_path: str, timestamps: List[Dict],
-                                    output_path: str, before: float = 8, after: float = 2) -> Dict:
+                                    output_path: str, before: float = 8, after: float = 2, log_callback=None) -> Dict:
         """
         完整的处理流程：检测 -> 剪辑 -> 拼接
         
@@ -296,7 +297,7 @@ class VideoProcessor:
         
         try:
             # 步骤1: 提取片段
-            clips = self.extract_clips(video_path, timestamps, before, after)
+            clips = self.extract_clips(video_path, timestamps, before, after, None, log_callback)
             result['clips_extracted'] = len(clips)
             
             if not clips:
@@ -304,7 +305,7 @@ class VideoProcessor:
                 return result
             
             # 步骤2: 拼接片段
-            success = self.concatenate_clips(clips, output_path)
+            success = self.concatenate_clips(clips, output_path, False, log_callback)
             
             if success:
                 result['success'] = True

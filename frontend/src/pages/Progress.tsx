@@ -5,26 +5,29 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Space, message, Result as AntResult } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { ProgressIndicator } from '@/components/progress/ProgressIndicator';
 import { StatusDisplay } from '@/components/progress/StatusDisplay';
 import { LoadingState, ErrorAlert } from '@/components/common';
 import { useErrorHandler, useLoading } from '@/hooks';
 import { useAppStore } from '@/store/app';
-import { useTaskProgress } from '@/services/queries';
+import { useTaskProgress, QUERY_KEYS } from '@/services/queries';
+import { ApiService } from '@/services/api';
 import type { Task } from '@/types';
 
 export const Progress: React.FC = () => {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
   const { addNotification } = useAppStore();
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false); // Default to false as we use WebSocket
+  const queryClient = useQueryClient();
   
   // 错误处理和加载状态
   const { error, hasError, handleError, clearError, withErrorHandling } = useErrorHandler();
   const { loading: retryLoading, withLoading } = useLoading();
 
-  // 获取任务进度
+  // 获取任务进度 (Initial fetch)
   const {
     data: progress,
     isLoading,
@@ -32,32 +35,53 @@ export const Progress: React.FC = () => {
     refetch,
   } = useTaskProgress(fileId!, {
     enabled: !!fileId,
-    refetchInterval: autoRefresh ? 2000 : false,
+    refetchInterval: false, // Disable polling, use WebSocket
   });
 
-  // 监听任务状态变化
+  // WebSocket connection
   useEffect(() => {
-    if (progress) {
-      // 如果任务完成或失败，停止自动刷新
-      if (progress.completed || progress.status === 'failed') {
-        setAutoRefresh(false);
+    if (!fileId) return;
+
+    // Initial fetch to make sure we have the latest state
+    refetch();
+
+    const socket = ApiService.connectWebSocket((data) => {
+      if (data.taskId === fileId) {
+        // Update React Query cache
+        queryClient.setQueryData(QUERY_KEYS.PROGRESS(fileId), data.data);
+        // 移除日志累积显示
         
-        if (progress.completed) {
-          addNotification({
-            type: 'success',
-            title: '处理完成',
-            message: '视频高光提取已完成，可以查看结果了！',
-          });
-        } else if (progress.status === 'failed') {
-          addNotification({
-            type: 'error',
-            title: '处理失败',
-            message: progress.stage || '视频处理过程中出现错误',
-          });
+        // Show notification on completion
+        if (data.data.status === 'completed' && !progress?.completed) {
+             addNotification({
+                type: 'success',
+                title: '处理完成',
+                message: '视频高光提取已完成，可以查看结果了！',
+              });
+             // 不再显示完成时的日志追加
+        } else if (data.data.status === 'failed' && progress?.status !== 'failed') {
+             addNotification({
+                type: 'error',
+                title: '处理失败',
+                message: data.data.stage || '视频处理过程中出现错误',
+              });
         }
       }
+    });
+
+    return () => {
+      ApiService.disconnectWebSocket();
+    };
+  }, [fileId, queryClient, addNotification, refetch]);
+
+  // 监听任务状态变化 (Local effects)
+  useEffect(() => {
+    if (progress) {
+      if (progress.completed) {
+         // Task completed
+      }
     }
-  }, [progress, addNotification, fileId]);
+  }, [progress]);
 
   // 处理重试
   const handleRetry = withLoading(
@@ -66,8 +90,6 @@ export const Progress: React.FC = () => {
         throw new Error('文件ID不存在');
       }
       
-      // 重试功能需要重新实现，暂时只刷新状态
-      setAutoRefresh(true);
       refetch();
       message.success('已刷新任务状态');
     })
@@ -192,7 +214,7 @@ export const Progress: React.FC = () => {
                   处理进度
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600">
-                  实时跟踪视频处理状态和进度
+                  实时跟踪视频处理状态和进度 (WebSocket已连接)
                 </p>
               </div>
             </div>
@@ -201,81 +223,73 @@ export const Progress: React.FC = () => {
               <Button
                 icon={<ReloadOutlined />}
                 onClick={handleRefresh}
-                disabled={autoRefresh}
                 size="small"
                 className="sm:size-default"
               >
                 <span className="hidden sm:inline">刷新</span>
               </Button>
-              {autoRefresh && (
-                <Button
-                  type="dashed"
-                  onClick={() => setAutoRefresh(false)}
-                  size="small"
-                  className="sm:size-default"
-                >
-                  <span className="hidden sm:inline">停止自动刷新</span>
-                  <span className="sm:hidden">停止刷新</span>
-                </Button>
-              )}
-              {!autoRefresh && !progress.completed && (
-                <Button
-                  type="primary"
-                  onClick={() => setAutoRefresh(true)}
-                  size="small"
-                  className="sm:size-default"
-                >
-                  <span className="hidden sm:inline">开启自动刷新</span>
-                  <span className="sm:hidden">自动刷新</span>
-                </Button>
-              )}
             </Space>
           </div>
         </div>
 
-        {/* 进度指示器 */}
+        {/* 进度指示器 + 日志 */}
         <div className="mb-6">
           <Card>
-            <ProgressIndicator
-              status={progress.status}
-              stage={progress.stage}
-              progress={progress.progress}
-              message={progress.stage}
-              currentStep={undefined}
-              totalSteps={undefined}
-              estimatedTime={undefined}
-            />
+            {
+              /* 将后端状态映射到前端阶段键 */
+            }
+            {(() => {
+              const status = progress.status as string;
+              const stageText = progress.stage || '';
+              let stageKey: any = 'uploading';
+              if (status === 'detecting') stageKey = stageText.includes('分析') ? 'analyzing' : 'detecting';
+              else if (status === 'generating') stageKey = 'generating';
+              else if (status === 'completed') stageKey = 'completed';
+              else if (status === 'failed') stageKey = 'finalizing';
+
+              return (
+                <ProgressIndicator
+                  status={(progress.status === 'completed' || progress.status === 'failed' || progress.status === 'pending') ? (progress.status as any) : 'processing'}
+                  stage={stageKey}
+                  progress={progress.progress}
+                  message={progress.stage}
+                  currentStep={undefined}
+                  totalSteps={undefined}
+                  estimatedTime={undefined}
+                />
+              );
+            })()}
+            
           </Card>
         </div>
 
         {/* 状态详情 */}
-        <StatusDisplay
+          <StatusDisplay
           task={{
             id: fileId!,
-            status: progress.status,
+            status: (progress.status === 'completed' || progress.status === 'failed' || progress.status === 'pending') ? (progress.status as any) : 'processing',
             stage: progress.stage,
             progress: progress.progress,
             message: progress.stage || '',
             result: progress.result,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            error_message: (progress as any).error,
           }}
           onRetry={handleRetry}
-          onViewResult={handleViewResult}
+          onViewResult={() => {
+            const filename = (progress as any)?.result?.highlightVideo;
+            if (!filename) return;
+            const url = ApiService.getDownloadUrl(filename);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `basketball_highlight_${filename}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }}
           retryLoading={retryLoading}
         />
-
-        {/* 底部提示 */}
-        <div className="mt-8 text-center text-gray-500 text-sm">
-          {autoRefresh ? (
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>页面每2秒自动刷新一次</span>
-            </div>
-          ) : (
-            <span>自动刷新已停止，点击刷新按钮手动更新状态</span>
-          )}
-        </div>
       </div>
     </div>
   );

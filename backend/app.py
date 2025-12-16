@@ -1,23 +1,37 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 import os
-# 解决 Windows 上 OpenMP 运行时冲突（libomp 与 libiomp5md）
-os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
 import uuid
 import threading
 import time
 import logging
+import shutil
 from datetime import datetime
 from shot_detector_video import BasketballShotDetector
 from video_processor import VideoProcessor
+
+import sys
+import codecs
+
+# Force console to use UTF-8
+if sys.platform.startswith('win'):
+    # Check if stdout/stderr are attached to a terminal before replacing
+    if sys.stdout.encoding.lower() != 'utf-8':
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except AttributeError:
+            # For older Python versions or wrapped streams
+            pass
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('basketball_highlight.log'),
+        logging.FileHandler('basketball_highlight.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -25,22 +39,29 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# 绝对路径基准
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'best.pt')
 
 # 配置
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
-TEMP_FOLDER = 'temp'
-ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+OUTPUT_FOLDER = os.path.join(BASE_DIR, 'outputs')
+TEMP_FOLDER = os.path.join(BASE_DIR, 'temp')
+CHUNKS_FOLDER = os.path.join(TEMP_FOLDER, 'chunks')
+ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv'}
+MAX_FILE_SIZE = 2048 * 1024 * 1024  # 2GB (increased for large video files)
 
 # 创建必要的目录
-for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, TEMP_FOLDER]:
+for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, TEMP_FOLDER, CHUNKS_FOLDER]:
     os.makedirs(folder, exist_ok=True)
     logger.info(f"确保目录存在: {folder}")
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['TEMP_FOLDER'] = TEMP_FOLDER
+app.config['CHUNKS_FOLDER'] = CHUNKS_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # 全局任务存储
@@ -145,6 +166,112 @@ def upload_video():
             'error': f'上传失败: {str(e)}'
         }), 500
 
+@app.route('/api/upload/init', methods=['POST'])
+def init_upload():
+    """初始化分块上传"""
+    try:
+        # Debug: Print request info
+        print(f"Init upload request: headers={request.headers}", file=sys.stderr)
+        
+        data = request.get_json(silent=True)
+        if data is None:
+             print("Request body is not JSON", file=sys.stderr)
+             return jsonify({'success': False, 'error': 'Invalid JSON body'}), 400
+             
+        filename = data.get('filename')
+        
+        if not filename:
+            print("Filename missing in request", file=sys.stderr)
+            return jsonify({'success': False, 'error': 'Filename required'}), 400
+            
+        file_id = str(uuid.uuid4())
+        upload_dir = os.path.join(app.config['CHUNKS_FOLDER'], file_id)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        print(f"Upload initialized: {file_id}, dir={upload_dir}", file=sys.stderr)
+        
+        return jsonify({
+            'success': True,
+            'fileId': file_id,
+            'message': 'Upload initialized'
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        logger.error(f"Init upload failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/upload/chunk', methods=['POST'])
+def upload_chunk():
+    """上传文件块"""
+    try:
+        if 'chunk' not in request.files:
+            return jsonify({'success': False, 'error': 'No chunk file'}), 400
+            
+        chunk = request.files['chunk']
+        file_id = request.form.get('fileId')
+        chunk_index = request.form.get('chunkIndex')
+        
+        if not file_id or chunk_index is None:
+            return jsonify({'success': False, 'error': 'Missing fileId or chunkIndex'}), 400
+            
+        save_path = os.path.join(app.config['CHUNKS_FOLDER'], file_id, chunk_index)
+        chunk.save(save_path)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Upload chunk failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/upload/complete', methods=['POST'])
+def complete_upload():
+    """完成分块上传并合并文件"""
+    try:
+        data = request.get_json()
+        file_id = data.get('fileId')
+        filename = data.get('filename')
+        total_chunks = data.get('totalChunks')
+        
+        if not file_id or not filename or total_chunks is None:
+            return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+            
+        chunks_dir = os.path.join(app.config['CHUNKS_FOLDER'], file_id)
+        if not os.path.exists(chunks_dir):
+            return jsonify({'success': False, 'error': 'Upload session not found'}), 404
+            
+        # Verify all chunks exist
+        for i in range(total_chunks):
+            if not os.path.exists(os.path.join(chunks_dir, str(i))):
+                return jsonify({'success': False, 'error': f'Missing chunk {i}'}), 400
+        
+        # Merge chunks
+        safe_filename = secure_filename(filename)
+        final_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}_{safe_filename}")
+        
+        with open(final_path, 'wb') as outfile:
+            for i in range(total_chunks):
+                chunk_path = os.path.join(chunks_dir, str(i))
+                with open(chunk_path, 'rb') as infile:
+                    shutil.copyfileobj(infile, outfile)
+                    
+        # Clean up chunks
+        shutil.rmtree(chunks_dir)
+        
+        file_size = os.path.getsize(final_path)
+        logger.info(f"File merged successfully: {final_path}, size: {file_size}")
+        
+        return jsonify({
+            'success': True,
+            'fileId': file_id,
+            'filename': safe_filename,
+            'fileSize': file_size,
+            'message': 'Upload completed successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Complete upload failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/process', methods=['POST'])
 def process_video():
     """启动视频处理任务"""
@@ -162,8 +289,8 @@ def process_video():
             }), 400
         
         file_id = data['fileId']
-        before_seconds = data.get('beforeSeconds', 8)
-        after_seconds = data.get('afterSeconds', 2)
+        before_seconds = data.get('beforeSeconds', 3)
+        after_seconds = data.get('afterSeconds', 1)
         
         # 验证参数
         if not isinstance(before_seconds, (int, float)) or before_seconds < 1 or before_seconds > 30:
@@ -243,6 +370,21 @@ def update_task_progress(task_id, **kwargs):
     if task_id in processing_tasks:
         processing_tasks[task_id].update(kwargs)
         logger.info(f"任务 {task_id} 进度更新: {kwargs}")
+        
+        # 通过WebSocket发送进度更新
+        try:
+            task_data = processing_tasks[task_id].copy()
+            # 添加完成状态标记
+            task_data['completed'] = task_data['status'] in ['completed', 'failed']
+            # 如果此次更新包含即时日志，不持久化但在事件中携带
+            if 'log' in kwargs:
+                task_data['log'] = kwargs['log']
+            socketio.emit('task_progress', {
+                'taskId': task_id,
+                'data': task_data
+            })
+        except Exception as e:
+            logger.error(f"WebSocket发送失败: {e}")
 
 def process_video_background(task_id, input_path, before_seconds, after_seconds):
     """后台处理视频的函数"""
@@ -258,7 +400,7 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
         )
         
         # 检查模型文件是否存在
-        model_path = 'best.pt'
+        model_path = MODEL_PATH
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"AI模型文件不存在: {model_path}")
         
@@ -285,6 +427,14 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
             annotate=True,
             annotated_output_path=os.path.join(app.config['TEMP_FOLDER'], f"{task_id}_annotated.mp4")
         )
+
+        if result.get('made_shots'):
+            for i, t in enumerate(result['made_shots'], start=1):
+                try:
+                    msg = f"检测到投篮 #{i} - 帧: {t['frame']}, 时间: {float(t['timestamp']):.2f}s, 进球"
+                    update_task_progress(task_id, log=msg)
+                except Exception:
+                    pass
         
         logger.info(f"检测完成，结果: 总投篮 {result['stats']['total_attempts']}, 进球 {result['stats']['total_makes']}, 命中率 {result['stats']['accuracy']:.1f}%")
         
@@ -312,7 +462,8 @@ def process_video_background(task_id, input_path, before_seconds, after_seconds)
                 timestamps=result['made_shots'],
                 output_path=output_path,
                 before=before_seconds,
-                after=after_seconds
+                after=after_seconds,
+                log_callback=lambda m: update_task_progress(task_id, log=m)
             )
             
             if not video_result['success']:
@@ -454,6 +605,20 @@ def download_video(filename):
             'error': '下载失败'
         }), 500
 
+@app.route('/api/stream/<filename>', methods=['GET'])
+def stream_video(filename):
+    try:
+        if not filename or '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({'success': False, 'error': '非法文件名'}), 400
+
+        file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        if not os.path.exists(file_path):
+            return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+        return send_file(file_path, as_attachment=False, mimetype='video/mp4', conditional=True)
+    except Exception:
+        return jsonify({'success': False, 'error': '流媒体传输失败'}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
@@ -466,7 +631,7 @@ def health_check():
             'components': {
                 'upload_folder': os.path.exists(UPLOAD_FOLDER),
                 'output_folder': os.path.exists(OUTPUT_FOLDER),
-                'model_file': os.path.exists('best.pt'),
+                'model_file': os.path.exists(MODEL_PATH),
                 'active_tasks': len(processing_tasks)
             }
         }
@@ -514,10 +679,11 @@ def start_cleanup_timer():
 
 if __name__ == '__main__':
     start_cleanup_timer()
-    logger.info("🏀 篮球集锦生成服务启动中...")
-    logger.info("📡 API服务地址: http://localhost:5000")
-    logger.info("📋 健康检查: http://localhost:5000/api/health")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info("Basketball Highlight Generator Service Starting...")
+    logger.info("API Service: http://localhost:5000")
+    logger.info("Health Check: http://localhost:5000/api/health")
+    # app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
 
 
 

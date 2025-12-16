@@ -9,6 +9,7 @@ import type {
   UploadParams,
   UploadResponse,
   ProcessParams,
+  ProcessResponse,
   ProgressInfo,
   ProcessingResult,
   HealthCheckResponse,
@@ -43,13 +44,13 @@ export const useHealthCheck = (
  * 任务进度查询
  */
 export const useTaskProgress = (
-  fileId: string,
+  taskId: string,
   options?: UseQueryOptions<ProgressInfo, Error>
 ) => {
   return useQuery({
-    queryKey: QUERY_KEYS.PROGRESS(fileId),
-    queryFn: () => ApiService.getProgress({ fileId }),
-    enabled: !!fileId,
+    queryKey: QUERY_KEYS.PROGRESS(taskId),
+    queryFn: () => ApiService.getProgress({ taskId }),
+    enabled: !!taskId,
     refetchInterval: (query) => {
       // 如果任务已完成或失败，停止轮询
       const data = query.state.data;
@@ -67,13 +68,13 @@ export const useTaskProgress = (
  * 任务结果查询
  */
 export const useTaskResult = (
-  fileId: string,
+  taskId: string,
   options?: UseQueryOptions<ProcessingResult, Error>
 ) => {
   return useQuery({
-    queryKey: QUERY_KEYS.RESULT(fileId),
-    queryFn: () => ApiService.getResult(fileId),
-    enabled: !!fileId,
+    queryKey: QUERY_KEYS.RESULT(taskId),
+    queryFn: () => ApiService.getResult(taskId),
+    enabled: !!taskId,
     staleTime: 300000, // 5分钟内不重新获取
     ...options,
   });
@@ -119,15 +120,15 @@ export const useStats = (
  */
 export const useUploadVideo = (
   options?: UseMutationOptions<UploadResponse, Error, {
-    params: UploadParams;
+    file: File;
     onProgress?: (progress: number) => void;
   }>
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ params, onProgress }) => 
-      ApiService.uploadVideo(params, onProgress),
+    mutationFn: ({ file, onProgress }) => 
+      ApiService.uploadVideo({ file }, onProgress),
     onSuccess: (data: UploadResponse) => {
       // 上传成功后，开始查询进度
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROGRESS(data.fileId) });
@@ -140,15 +141,15 @@ export const useUploadVideo = (
  * 视频处理 Mutation
  */
 export const useProcessVideo = (
-  options?: UseMutationOptions<void, Error, ProcessParams>
+  options?: UseMutationOptions<ProcessResponse, Error, ProcessParams>
 ) => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: ApiService.processVideo,
-    onSuccess: (_, params) => {
+    onSuccess: (resp) => {
       // 开始轮询进度
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROGRESS(params.fileId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROGRESS(resp.taskId) });
     },
     ...options,
   });

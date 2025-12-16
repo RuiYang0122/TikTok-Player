@@ -110,9 +110,16 @@ export interface ProcessParams {
   afterSeconds?: number;
 }
 
+// 视频处理响应
+export interface ProcessResponse {
+  success: boolean;
+  taskId: string;
+  message?: string;
+}
+
 // 任务查询参数
 export interface TaskQueryParams {
-  fileId: string;
+  taskId: string;
 }
 
 // 下载参数

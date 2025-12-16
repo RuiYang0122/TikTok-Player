@@ -6,7 +6,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Home } from '@/pages/Home';
 import { Progress } from '@/pages/Progress';
 import { Result } from '@/pages/Result';
-import { History } from '@/pages/History';
 
 export const router = createBrowserRouter([
   {
@@ -24,10 +23,6 @@ export const router = createBrowserRouter([
       {
         path: 'result/:fileId',
         element: <Result />,
-      },
-      {
-        path: 'history',
-        element: <History />,
       },
       {
         path: '*',

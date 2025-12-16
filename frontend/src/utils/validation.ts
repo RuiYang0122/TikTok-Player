@@ -63,37 +63,27 @@ export const validateVideoFile = (file: File): { valid: boolean; error?: string 
 
 // 验证处理配置
 export const validateProcessingConfig = (config: {
-  confidence_threshold: number;
-  min_shot_duration: number;
-  max_highlight_duration: number;
-}): { valid: boolean; errors: Record<string, string> } => {
-  const errors: Record<string, string> = {};
-  
-  // 验证置信度阈值
-  if (config.confidence_threshold < 0 || config.confidence_threshold > 1) {
-    errors.confidence_threshold = '置信度阈值必须在 0 到 1 之间';
+  beforeSeconds: number;
+  afterSeconds: number;
+}): { valid: boolean; error?: string } => {
+  // 验证进球前保留时间
+  if (config.beforeSeconds < 1 || config.beforeSeconds > 15) {
+    return { valid: false, error: '进球前保留时间必须在 1 到 15 秒之间' };
   }
   
-  // 验证最小投篮持续时间
-  if (config.min_shot_duration < 0.1 || config.min_shot_duration > 10) {
-    errors.min_shot_duration = '最小投篮持续时间必须在 0.1 到 10 秒之间';
+  // 验证进球后保留时间
+  if (config.afterSeconds < 1 || config.afterSeconds > 10) {
+    return { valid: false, error: '进球后保留时间必须在 1 到 10 秒之间' };
   }
   
-  // 验证最大高光持续时间
-  if (config.max_highlight_duration < 10 || config.max_highlight_duration > 600) {
-    errors.max_highlight_duration = '最大高光持续时间必须在 10 到 600 秒之间';
-  }
-  
-  // 验证逻辑关系
-  if (config.max_highlight_duration < config.min_shot_duration * 2) {
-    errors.max_highlight_duration = '最大高光持续时间应该至少是最小投篮持续时间的两倍';
-  }
-  
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors
-  };
+  return { valid: true };
 };
+
+export const validateProcessingConfig2 = (config: any): { valid: boolean; error?: string } => {
+    // 简单的验证逻辑，因为ProcessingConfig类型可能在运行时不可用
+    if (!config) return { valid: false, error: '配置不能为空' };
+    return { valid: true };
+}
 
 // 验证任务ID
 export const validateTaskId = (taskId: string): boolean => {

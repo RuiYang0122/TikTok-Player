@@ -1,8 +1,8 @@
 // API 类型
-export * from './api';
+export type * from './api';
 
 // 应用类型
-export * from './app';
+export type * from './app';
 
 // 常用类型别名
 export type ID = string;

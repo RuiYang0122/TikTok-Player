@@ -22,6 +22,7 @@ import {
 } from '@ant-design/icons';
 
 import { VideoPlayer } from '@/components/result/VideoPlayer';
+import { ApiService } from '@/services/api';
 import { ResultStats } from '@/components/result/ResultStats';
 import { LoadingState, ErrorAlert } from '@/components/common';
 import { useErrorHandler, useLoading } from '@/hooks';
@@ -54,13 +55,13 @@ export const Result: React.FC = () => {
   // 处理下载
   const handleDownload = withLoading(
     withErrorHandling(async () => {
-      if (!result?.output_file?.url) {
-        throw new Error('下载链接不可用');
-      }
+      const filename = (result as any)?.highlightVideo;
+      if (!filename) throw new Error('下载链接不可用');
+      const url = ApiService.getDownloadUrl(filename);
 
       const link = document.createElement('a');
-      link.href = result.output_file.url;
-      link.download = result.output_file.filename || 'highlight.mp4';
+      link.href = url;
+      link.download = `basketball_highlight_${filename}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -247,7 +248,7 @@ export const Result: React.FC = () => {
           <div className="lg:col-span-2">
             <Card title="高光视频" size="small">
               <VideoPlayer
-                src={result.output_file?.url || ''}
+                src={result && ApiService.getStreamUrl((result as any).highlightVideo) || ''}
                 title="高光视频"
               />
             </Card>
@@ -313,13 +314,13 @@ export const Result: React.FC = () => {
                         <div>
                           <div className="text-sm text-gray-500">处理时长</div>
                           <div className="text-sm">
-                            {result.processing_time && `${result.processing_time}秒`}
+                            {(result as any).processing_time && `${(result as any).processing_time}秒`}
                           </div>
                         </div>
                         <div>
                           <div className="text-sm text-gray-500">检测统计</div>
                           <div className="text-sm">
-                            {result.stats && `检测到 ${result.stats.total_shots} 次投篮`}
+                            {((result as any).stats?.total_shots ?? (result as any).totalShots) && `检测到 ${((result as any).stats?.total_shots ?? (result as any).totalShots)} 次投篮`}
                           </div>
                         </div>
                       </div>

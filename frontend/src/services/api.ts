@@ -3,6 +3,7 @@
  */
 import { HttpService, withRetry } from './http';
 import { API_ENDPOINTS } from '@/utils/constants';
+import { io, Socket } from 'socket.io-client';
 import type {
   UploadResponse,
   ProgressInfo,
@@ -10,44 +11,114 @@ import type {
   HealthCheckResponse,
   UploadParams,
   ProcessParams,
+  ProcessResponse,
   TaskQueryParams,
   DownloadParams,
 } from '@/types';
 
 export class ApiService {
+  private static socket: Socket | null = null;
+
   /**
-   * 上传视频文件
+   * 初始化 WebSocket 连接
+   */
+  static connectWebSocket(onTaskProgress: (data: any) => void) {
+    if (!this.socket) {
+      this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+        transports: ['websocket', 'polling']
+      });
+      
+      this.socket.on('connect', () => {
+        console.log('WebSocket connected');
+      });
+      
+      this.socket.on('disconnect', () => {
+        console.log('WebSocket disconnected');
+      });
+    }
+
+    // 移除之前的监听器以避免重复
+    this.socket.off('task_progress');
+    this.socket.on('task_progress', (message) => {
+        onTaskProgress(message);
+    });
+
+    return this.socket;
+  }
+
+  static disconnectWebSocket() {
+    if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+    }
+  }
+
+  /**
+   * 分块上传视频文件
    */
   static async uploadVideo(
     params: UploadParams,
     onUploadProgress?: (progress: number) => void
   ): Promise<UploadResponse> {
-    const formData = new FormData();
-    formData.append('video', params.file);
+    const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+    const file = params.file;
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-    const response = await HttpService.upload<UploadResponse>(
-      API_ENDPOINTS.UPLOAD,
-      formData,
-      (progressEvent) => {
-        if (onUploadProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onUploadProgress(progress);
-        }
+    // 1. Initialize upload
+    const initResponse = await HttpService.post<{ success: boolean; fileId: string; message: string }>(
+      '/api/upload/init', 
+      { filename: file.name }
+    );
+    
+    if (!initResponse.success) {
+      throw new Error(initResponse.message || 'Upload initialization failed');
+    }
+
+    const fileId = initResponse.fileId;
+
+    // 2. Upload chunks
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(file.size, start + CHUNK_SIZE);
+      const chunk = file.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('chunk', chunk);
+      formData.append('fileId', fileId);
+      formData.append('chunkIndex', i.toString());
+
+      await HttpService.upload(
+        '/api/upload/chunk',
+        formData
+      );
+
+      if (onUploadProgress) {
+        const progress = Math.round(((i + 1) / totalChunks) * 100);
+        onUploadProgress(progress);
+      }
+    }
+
+    // 3. Complete upload
+    const completeResponse = await HttpService.post<UploadResponse>(
+      '/api/upload/complete',
+      {
+        fileId,
+        filename: file.name,
+        totalChunks
       }
     );
 
-    // Flask后端直接返回UploadResponse格式
-    if (!response.success) {
-      throw new Error(response.message || '上传失败');
+    if (!completeResponse.success) {
+      throw new Error(completeResponse.message || 'Upload completion failed');
     }
 
-    return response.data!;
+    return completeResponse;
   }
 
   /**
    * 开始处理视频
    */
-  static async processVideo(params: ProcessParams): Promise<void> {
+  static async processVideo(params: ProcessParams): Promise<ProcessResponse> {
     const response = await HttpService.post(API_ENDPOINTS.PROCESS, {
       fileId: params.fileId,
       beforeSeconds: params.beforeSeconds || 8,
@@ -55,8 +126,9 @@ export class ApiService {
     });
     
     if (!response.success) {
-      throw new Error(response.message || response.error || '开始处理失败');
+      throw new Error((response as any).message || (response as any).error || '开始处理失败');
     }
+    return response as unknown as ProcessResponse;
   }
 
   /**
@@ -64,18 +136,17 @@ export class ApiService {
    */
   static async getProgress(params: TaskQueryParams): Promise<ProgressInfo> {
     const response = await withRetry(async () => {
-      return HttpService.get<ProgressInfo>(`${API_ENDPOINTS.PROGRESS}/${params.fileId}`);
+      return HttpService.get<ProgressInfo>(`${API_ENDPOINTS.PROGRESS}/${params.taskId}`);
     });
 
-    // Flask后端直接返回ProgressInfo格式
-    return response.data!;
+    return response as unknown as ProgressInfo;
   }
 
   /**
    * 获取处理结果
    */
-  static async getResult(fileId: string): Promise<ProcessingResult> {
-    const progressInfo = await this.getProgress({ fileId });
+  static async getResult(taskId: string): Promise<ProcessingResult> {
+    const progressInfo = await this.getProgress({ taskId });
     
     if (!progressInfo.completed || !progressInfo.result) {
       throw new Error('处理尚未完成或结果不可用');
@@ -110,17 +181,16 @@ export class ApiService {
     return `${API_ENDPOINTS.DOWNLOAD}/${filename}`;
   }
 
+  static getStreamUrl(filename: string): string {
+    return `/api/stream/${filename}`;
+  }
+
   /**
    * 健康检查
    */
   static async healthCheck(): Promise<HealthCheckResponse> {
     const response = await HttpService.get<HealthCheckResponse>(API_ENDPOINTS.HEALTH);
-    
-    if (!response.success || !response.data) {
-      throw new Error(response.message || response.error || '健康检查失败');
-    }
-
-    return response.data;
+    return response as unknown as HealthCheckResponse;
   }
 
   /**

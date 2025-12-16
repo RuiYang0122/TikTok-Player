@@ -2,11 +2,10 @@ import React from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ConfigProvider, message } from 'antd';
+import { ConfigProvider, message, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { router } from '@/router';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
-import NetworkStatus from '@/components/common/NetworkStatus';
 import './index.css';
 import './App.css';
 
@@ -31,8 +30,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ConfigProvider locale={zhCN}>
-          <NetworkStatus />
+        <ConfigProvider locale={zhCN} theme={{ algorithm: theme.defaultAlgorithm, token: { colorPrimary: '#8AA29E', colorSuccess: '#7FB77E', colorBgBase: '#F6F5F2', colorTextBase: '#3E4A59', colorBorder: '#D8DAD3' } }}>
           <RouterProvider router={router} />
         </ConfigProvider>
         <ReactQueryDevtools initialIsOpen={false} />

@@ -12,7 +12,7 @@ import {
   ReloadOutlined,
   EyeOutlined
 } from '@ant-design/icons';
-import { Task, TaskStatus } from '@/types';
+import type { Task, TaskStatus } from '@/types';
 import { formatFileSize, formatDuration, formatTimestamp } from '@/utils';
 
 interface StatusDisplayProps {
@@ -31,7 +31,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
   className = '',
 }) => {
   // 获取状态标签
-  const getStatusTag = (status: TaskStatus) => {
+  const getStatusTag = (status: TaskStatus | string) => {
     const statusConfig = {
       pending: { color: 'blue', text: '等待中' },
       processing: { color: 'orange', text: '处理中' },
@@ -39,7 +39,10 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
       failed: { color: 'red', text: '失败' },
     };
 
-    const config = statusConfig[status];
+    const key = (status === 'completed' || status === 'failed' || status === 'pending')
+      ? status
+      : 'processing';
+    const config = (statusConfig as any)[key];
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
@@ -168,19 +171,19 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
         {/* 处理统计 */}
         <Col xs={24} lg={12}>
           <Card title="处理统计" size="small">
-            {task.status === 'completed' && task.result?.stats ? (
+            {task.status === 'completed' && task.result ? (
               <Row gutter={16}>
                 <Col span={12}>
                   <Statistic
                     title="总投篮次数"
-                    value={task.result.stats.total_shots}
+                    value={(task.result as any).totalShots || 0}
                     prefix={<PlayCircleOutlined />}
                   />
                 </Col>
                 <Col span={12}>
                   <Statistic
                     title="成功投篮"
-                    value={task.result.stats.successful_shots}
+                    value={(task.result as any).madeShots || 0}
                     prefix={<CheckCircleOutlined />}
                     valueStyle={{ color: '#52c41a' }}
                   />
@@ -188,7 +191,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
                 <Col span={12}>
                   <Statistic
                     title="命中率"
-                    value={task.result.stats.accuracy_rate}
+                    value={(task.result as any).accuracy || 0}
                     precision={1}
                     suffix="%"
                     valueStyle={{ color: '#1890ff' }}
@@ -196,10 +199,8 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
                 </Col>
                 <Col span={12}>
                   <Statistic
-                    title="高光时长"
-                    value={task.result.stats.highlight_duration}
-                    precision={1}
-                    suffix="秒"
+                    title="片段数量"
+                    value={((task.result as any).timestamps || []).length}
                     prefix={<ClockCircleOutlined />}
                   />
                 </Col>
@@ -251,20 +252,12 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
             <Card size="small">
               <div className="text-center">
                 <Space size="middle">
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<EyeOutlined />}
-                    onClick={onViewResult}
-                  >
-                    查看结果
-                  </Button>
-                  {task.result?.download_url && (
+                  {task.result && (task.result as any).highlightVideo && (
                     <Button
+                      type="primary"
                       size="large"
                       icon={<FileOutlined />}
-                      href={task.result.download_url}
-                      target="_blank"
+                      onClick={onViewResult}
                     >
                       下载视频
                     </Button>
@@ -275,45 +268,24 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
           </Col>
         )}
 
-        {/* 处理配置信息 */}
+        {/* 处理配置信息（精简版） */}
         {task.config && (
           <Col xs={24}>
             <Card title="处理配置" size="small">
               <Row gutter={[16, 8]}>
                 <Col xs={12} sm={6}>
                   <div className="text-center">
-                    <div className="text-lg font-semibold">{(task.config.sensitivity * 100).toFixed(0)}%</div>
-                    <div className="text-xs text-gray-500">检测灵敏度</div>
+                    <div className="text-lg font-semibold">{task.config.beforeSeconds}s</div>
+                    <div className="text-xs text-gray-500">进球前保留</div>
                   </div>
                 </Col>
                 <Col xs={12} sm={6}>
                   <div className="text-center">
-                    <div className="text-lg font-semibold">{task.config.minDuration}s</div>
-                    <div className="text-xs text-gray-500">最短时长</div>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">{task.config.maxDuration}s</div>
-                    <div className="text-xs text-gray-500">最长时长</div>
-                  </div>
-                </Col>
-                <Col xs={12} sm={6}>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold uppercase">{task.config.outputFormat}</div>
-                    <div className="text-xs text-gray-500">输出格式</div>
+                    <div className="text-lg font-semibold">{task.config.afterSeconds}s</div>
+                    <div className="text-xs text-gray-500">进球后保留</div>
                   </div>
                 </Col>
               </Row>
-              
-              <div className="mt-4 flex flex-wrap gap-2">
-                {task.config.detectShots && <Tag color="orange">投篮检测</Tag>}
-                {task.config.detectDunks && <Tag color="red">扣篮检测</Tag>}
-                {task.config.detectPasses && <Tag color="blue">传球检测</Tag>}
-                {task.config.detectDefense && <Tag color="green">防守检测</Tag>}
-                {task.config.includeSlowMotion && <Tag color="purple">慢动作</Tag>}
-                {task.config.autoEnhance && <Tag color="cyan">自动增强</Tag>}
-              </div>
             </Card>
           </Col>
         )}
