@@ -20,7 +20,9 @@
 
 https://github.com/user-attachments/assets/8723aabc-38b1-4c8e-90a3-13d688a820bf
 
+## 🧩整体pipeline
 
+<img width="1589" height="867" alt="屏幕截图 2025-12-16 231438" src="https://github.com/user-attachments/assets/6b113e21-f470-477b-b85f-d6520e7dd992" />
 
 
 ## ✨ 核心功能
@@ -90,11 +92,12 @@ npm run dev
 
 <img width="2549" height="1247" alt="image" src="https://github.com/user-attachments/assets/617a48ed-3cf8-47d9-899f-c69b2920e541" />
 
-## 注意事项
-**目前仍处于测试阶段，测试视频存放于backend\test_files目录下。**  
-**如你想生成自己的集锦视频，可以将视频保存在该目录下。**
-**进入backend\test_full_pipeline.py文件，修改video_path变量为你保存的视频文件名。**
-**运行test_full_pipeline.py文件，即可生成集锦视频。**
+## 进球判断逻辑
+
+<img width="1551" height="805" alt="屏幕截图 2025-12-16 231541" src="https://github.com/user-attachments/assets/4c312c84-b87f-477f-afb8-52021b03ec8e" />
+
+<img width="1587" height="778" alt="image" src="https://github.com/user-attachments/assets/982d31da-49cf-4e1f-bf6c-be8c6e9cce69" />
+
 
 
 ## 📁 项目结构
