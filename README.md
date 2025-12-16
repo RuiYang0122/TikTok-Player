@@ -67,7 +67,28 @@ pip install -r requirements.txt
 
 # 启动后端服务(测试阶段)
 python test_full_pipeline.py
+
+# 返回项目根目录
+cd ..
+
+# 进入前端目录
+cd frontend
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
 ```
+
+## 前端页面展示
+
+<img width="2557" height="1055" alt="image" src="https://github.com/user-attachments/assets/fd98d4f4-fee8-4d09-95f5-c65ac9587bf5" />
+
+## 处理过程页面
+
+<img width="2549" height="1247" alt="image" src="https://github.com/user-attachments/assets/617a48ed-3cf8-47d9-899f-c69b2920e541" />
 
 ## 注意事项
 **目前仍处于测试阶段，测试视频存放于backend\test_files目录下。**  
