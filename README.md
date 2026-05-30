@@ -1,4 +1,4 @@
-# 🏀 Tiktok_Player
+# 🏀 HoopCut
 
 <div align="center">
 
@@ -51,7 +51,7 @@ https://github.com/user-attachments/assets/8723aabc-38b1-4c8e-90a3-13d688a820bf
 ```bash
 # 克隆项目
 git clone <repository-url>
-cd Tiktok_Player
+cd HoopCut
 
 # 进入后端目录
 cd backend
@@ -103,7 +103,7 @@ npm run dev
 ## 📁 项目结构
 
 ```
-Tiktok_Player/
+HoopCut/
 ├── backend/                 # 后端代码
 │   ├── app.py              # 主应用文件
 │   ├── shot_detector_video.py  # 进球检测模块

@@ -124,7 +124,7 @@ export const Home: React.FC = () => {
           <div className="text-center">
             <div className="flex items-center justify-center mb-4">
               <Title level={1} className="!mb-0 !text-3xl font-bold bg-gradient-to-r from-[#C3AED6] to-[#F7C8E0] bg-clip-text text-transparent">
-                TikTok-Player
+                HoopCut
               </Title>
             </div>
             <Paragraph className="text-lg text-gray-800 max-w-2xl mx-auto">
